@@ -165,7 +165,9 @@
 
       // громкость: фаза (cur.master, пик 0.5) → норма ×2 × громкость × толщина стены; в потоке чуть тише
       const present = 1 - depth * 0.15;
-      this.master.gain.setTargetAtTime(this.cur.master * 2 * vol * (0.8 + masking * 0.35) * present, t, 1.2);
+      // затухание в тишину (пауза/выкл) — быстрое (~0.4с тау): жест должен отвечать сразу; всё остальное — мягкие 1.2с
+      const tau = (this.phase === 'ниточка' || this.phase === 'off') ? 0.4 : 1.2;
+      this.master.gain.setTargetAtTime(this.cur.master * 2 * vol * (0.8 + masking * 0.35) * present, t, tau);
     }
 
     _remaining() {
@@ -212,7 +214,14 @@
         this.cur.brightness = lerp(tod * 0.9, Math.min(1.15, tod + 0.35), easeInOut(p));
         if (p >= 1) { this.phase = 'ручей'; this.phaseStart = t; this._apply(); this._emit({ justEnded: true }); return; }
       } else if (this.phase === 'ниточка') {
-        this.cur.master = 0.18; this.cur.depth = 0.05; this.cur.brightness = tod;
+        this.cur.master = 0; this.cur.depth = 0.05; this.cur.brightness = tod; // пауза = тишина (юзер-тест 07-16: «нажал — затихло», жест отвечает сразу)
+      } else if (this.phase === 'угасание') {
+        // ручное «завершить»: короткий благодарный выдох в тишину (НЕ церемония рассвета) — юзер-тест №6
+        const p = clamp((t - this.phaseStart) / this._extDur, 0, 1);
+        this.cur.master = this._extFrom * (1 - easeInOut(p));
+        this.cur.depth = lerp(this.cur.depth, 0.15, 0.08);
+        this.cur.brightness = tod;
+        if (p >= 1) { this.phase = 'off'; this.cur.master = 0; this._apply(); this._emit({ justEnded: true }); return; }
       }
       this._apply();
       this._emit();
@@ -253,6 +262,19 @@
         if (this.sessionStart) this.sessionDur = (nowSec() - this.sessionStart) + this.DAWN;
         this.phase = 'рассвет'; this.phaseStart = nowSec(); this._tick();
       }
+    }
+    extend(sec) { // «ещё 5 минуток» (на полке v2): из рассвета — назад в ткань; в сессии — длиннее
+      if (this.phase === 'рассвет') {
+        this.sessionDur = (nowSec() - this.sessionStart) + sec + this.DAWN;
+        this.phase = 'ткань'; this.phaseStart = nowSec(); this._tick();
+      } else if (['собирание', 'ткань', 'ниточка'].includes(this.phase)) {
+        this.sessionDur += sec; this._tick();
+      }
+    }
+    extinguish(sec) { // ручное «завершить»: быстрый выдох sec сек → тишина. Без церемонии рассвета (юзер-тест №6)
+      if (!['собирание', 'ткань', 'ниточка'].includes(this.phase)) return;
+      this._extFrom = this.cur.master; this._extDur = Math.max(0.3, sec);
+      this.phase = 'угасание'; this.phaseStart = nowSec(); this._tick();
     }
     turnOff() {
       this.phase = 'off';

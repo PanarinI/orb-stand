@@ -3,28 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Орб — присутствие (стенд)</title>
+  <title>Очаг — стенд MECHANICS v1.1</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
-    body { background: #0e0b08; color: #c9bdae; font: 13px/1.5 -apple-system, 'Segoe UI', sans-serif;
-      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 30px; }
-    .wrap { position: relative; width: 240px; height: 240px; touch-action: none; cursor: pointer; }
-    svg { width: 100%; height: 100%; display: block; }
+    /* тёплая дымка вместо чёрной пустоты — «очаг в тёмной комнате», не dev-void (портреты Ми/Лу) */
+    body { background: radial-gradient(ellipse 70% 60% at 50% 42%, #1a1109 0%, #120c07 55%, #0b0805 100%);
+      color: #c9bdae; font: 13px/1.5 -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 28px; }
+    .tick { stroke: #4a3826; stroke-width: 2.5; stroke-linecap: round; opacity: .5; }
+    #home { display: flex; flex-direction: column; align-items: center; }
+    .stage { position: relative; width: 250px; height: 285px; touch-action: none; cursor: pointer; }
+    .stage svg { width: 100%; height: 100%; display: block; }
     .ring { fill: none; stroke: #2a2119; stroke-width: 3; }
     #orb { transition: fill .8s ease, r .5s linear, filter .8s ease;
-      transform-box: fill-box; transform-origin: center; animation: breathe 7s ease-in-out infinite; }
+      transform-box: fill-box; transform-origin: center; animation: breathe 10s ease-in-out infinite; }
     @keyframes breathe { 0%, 100% { transform: scale(.97); } 50% { transform: scale(1.03); } }
     #setarc { transition: stroke-dashoffset .12s linear, opacity .3s ease; }
-    .num { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 30px; font-weight: 300;
+    .ember { fill: #a35c28; opacity: .85; filter: drop-shadow(0 0 4px rgba(220,120,50,.45)); }
+    #ash { stroke: #4a3826; stroke-width: 2.5; stroke-linecap: round; opacity: .35; transition: all .5s; }
+    .num { position: absolute; top: 44%; left: 50%; transform: translate(-50%, -50%); font-size: 30px; font-weight: 300;
       color: #f0d8b0; opacity: 0; transition: opacity .3s; pointer-events: none; font-variant-numeric: tabular-nums; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
-    .hint { font-size: 12px; color: #5c5145; text-align: center; max-width: 320px; }
-    /* громкость — единственный видимый орган кроме орба (боль Tide «no volume control») */
-    .vol { display: flex; align-items: center; gap: 11px; color: #b9863f; margin-top: -4px; }
+    .hint { font-size: 12px; color: #5c5145; text-align: center; max-width: 340px; }
+    .vol { display: flex; align-items: center; gap: 11px; color: #b9863f; }
     .vol svg { flex: none; width: 17px; height: 17px; opacity: .8; }
     .vol input[type=range] { -webkit-appearance: none; appearance: none; width: 186px; height: 5px;
       border-radius: 4px; background: #2a2119; cursor: pointer; outline: none; }
     .vol input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px;
       border-radius: 50%; background: #e8b25c; box-shadow: 0 0 9px rgba(232,178,92,.55); cursor: pointer; }
+    .pipbtn { background: none; border: 1px solid #3a2d1f; color: #b9863f; border-radius: 8px;
+      padding: 7px 16px; font: inherit; font-size: 12px; cursor: pointer; transition: border-color .3s; }
+    /* «☀ завершить» — живёт ТОЛЬКО в паузе (сценарий S5/S6), тихая, поверх wrap */
+    .finbtn { position: absolute; left: 50%; top: 63%; transform: translateX(-50%); z-index: 3;
+      background: rgba(20,15,10,.55); border: 1px solid #3a2d1f; color: #caa25a; border-radius: 8px;
+      padding: 5px 13px; font: inherit; font-size: 12px; cursor: pointer; transition: border-color .3s, opacity .3s; }
+    .finbtn:hover { border-color: #caa25a; }
+    .pipbtn:hover { border-color: #b9863f; }
+    .pipbtn:disabled { opacity: .4; cursor: default; }
     .dev { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; max-width: 540px;
       border-top: 1px solid #201a14; padding-top: 16px; opacity: .55; font-size: 11px; }
     .dev label { display: flex; align-items: center; gap: 6px; color: #6b5f50; }
@@ -32,17 +46,29 @@
   </style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
-    <svg viewBox="0 0 220 220">
-      <circle class="ring" cx="110" cy="110" r="90"/>
-      <line x1="110" y1="11" x2="110" y2="27" stroke="#caa25a" stroke-width="3.5" stroke-linecap="round"/>
-      <circle id="setarc" cx="110" cy="110" r="90" fill="none" stroke="#e8b25c" stroke-width="3"
-        stroke-linecap="round" stroke-dasharray="565.5" stroke-dashoffset="565.5"
-        transform="rotate(-90 110 110)" opacity="0"/>
-      <circle id="orb" cx="110" cy="110" r="14" fill="rgb(120,66,38)"/>
-    </svg>
-    <div class="num" id="num"></div>
+  <div id="home">
+    <div class="stage" id="stage">
+      <svg viewBox="0 0 220 250">
+        <circle class="ring" cx="110" cy="110" r="90"/>
+        <line x1="110" y1="11" x2="110" y2="27" stroke="#caa25a" stroke-width="3.5" stroke-linecap="round"/>
+        <!-- намёк на циферблат: несколько отсечек вправо от верхней (1·2·3 «часа») -->
+        <line class="tick" x1="155" y1="32" x2="151" y2="39"/>
+        <line class="tick" x1="188" y1="65" x2="181" y2="69"/>
+        <line class="tick" x1="200" y1="110" x2="192" y2="110"/>
+        <circle id="setarc" cx="110" cy="110" r="90" fill="none" stroke="#e8b25c" stroke-width="3"
+          stroke-linecap="round" stroke-dasharray="565.5" stroke-dashoffset="565.5"
+          transform="rotate(-90 110 110)" opacity="0"/>
+        <circle id="orb" cx="110" cy="110" r="14" fill="rgb(120,66,38)"/>
+        <g id="wrapzone"></g>
+        <line id="ash" x1="110" y1="248" x2="110" y2="248"/>
+        <g id="embers"></g>
+      </svg>
+      <div class="num" id="num"></div>
+      <div id="wrap" style="position:absolute;inset:0;"></div>
+      <button id="finish" class="finbtn" hidden>☀ завершить</button>
+    </div>
   </div>
+
   <div class="vol" title="громкость">
     <svg viewBox="0 0 24 24" width="17" height="17">
       <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
@@ -50,7 +76,11 @@
     </svg>
     <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5">
   </div>
-  <div class="hint">тронь орб — старт на 25 минут, ещё раз — стоп · крути кольцо — выставишь своё время (дуга застынет)<br>уголёк тлеет и ждёт · разгорается в фокусе · опадает в рассвет · звук — его голос</div>
+
+  <button class="pipbtn" id="pip">вынести жар</button>
+
+  <div class="hint">клик — старт (помнит твой завод) · в работе клик — пауза · «завершить» — мягкий выдох<br>
+    кручение/колесо в покое — своё время, до упора — ∞ · угли дня лягут под жаром</div>
 
   <div class="dev">
     <label><input type="checkbox" id="fast" checked> быстрый (секунды вместо минут)</label>
@@ -60,7 +90,7 @@
     <label>гармонизация <input type="range" id="harmony" min="0" max="1" step="0.02" value="0.7"></label>
   </div>
 
-  <script src="engine.js"></script>
-  <script src="orb.js"></script>
+  <script src="engine.js?b=7"></script>
+  <script src="hearth.js?b=7"></script>
 </body>
 </html>
