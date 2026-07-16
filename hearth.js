@@ -7,7 +7,7 @@
 //   кручение = ТОЛЬКО завод в покое; в сессии скролл не перехватывается.
 
 const el = {};
-['orb', 'setarc', 'num', 'wrap', 'stage', 'embers', 'ash', 'home', 'pip', 'volume', 'fast', 'premium', 'energy', 'masking', 'harmony', 'finish']
+['orb', 'setarc', 'num', 'wrap', 'stage', 'embers', 'ash', 'home', 'pip', 'volume', 'fast', 'premium', 'energy', 'masking', 'harmony', 'finish', 'knob']
   .forEach((id) => { el[id] = document.getElementById(id); });
 
 const ORB_MIN = 14, ORB_MAX = 84;
@@ -103,6 +103,7 @@ function render(st) {
   }
 
   el.finish.hidden = !inSession(phase);                        // «завершить» — всю рабочую сессию (S5, всегда под рукой)
+  placeKnob();                                                 // хваталка завода: видна в покое, спрятана в сессии
 
   const dim = phase === 'ниточка' ? 0.5 : 1;                   // пауза = глуше цвет; размер не трогаем
   const heat = on ? Math.min(1, (0.22 + grown * 0.55 + depth * 0.3)) * dim : 0.1;
@@ -119,10 +120,20 @@ function flashNum(text) {
 }
 
 // ---------- ЗАВОД (покой) ----------
+function placeKnob() {                                          // видимая хваталка на позиции завода; в сессии прячется
+  const inSess = inSession(engine.phase) || fading(engine.phase);
+  if (inSess) { el.knob.style.opacity = 0; return; }
+  el.knob.style.opacity = 1;
+  const m = infinite ? 116 : dialMin;                          // ∞ → почти полный круг (у верхней отсечки)
+  const th = (m / 120) * 2 * Math.PI;
+  el.knob.setAttribute('cx', (110 + 90 * Math.sin(th)).toFixed(1));
+  el.knob.setAttribute('cy', (110 - 90 * Math.cos(th)).toFixed(1));
+}
 function showDial() {
   flashNum(infinite ? '∞' : dialMin + '′');
   el.setarc.style.opacity = 0.55;
   el.setarc.style.strokeDashoffset = infinite ? 0 : (RING_C * (1 - dialMin / 120)).toFixed(1);
+  placeKnob();
 }
 function setDial(min) {
   infinite = min > 90;
